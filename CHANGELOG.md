@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2026.10.0] — 2026-10-19
+
 ### Added
 
 - **Agent Dynamic collection mode support** (#233, needs agent v2026.10.01, tinkerologie/unraid-management-agent#280): the integration detects the agent's collection mode from `GET /collectors/status`. In Dynamic mode:
@@ -20,118 +22,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - per custom command sensor: a number when the output parses as one, otherwise text, with `error` and `updated_at` attributes; and the guest hostname (diagnostic) with OS name and agent state as attributes.
   - The sensors stay available with an unknown state while the VM is off or a reading is null, and only become unavailable when the agent cannot be reached. Entity IDs are named after the VM and the item (`sensor.<server>_vms_<vm>_gpu_0_temperature`, `..._disk_<model>_wear`, `..._filesystem_c_used`, `..._<sensor name>`); unique IDs use the GPU index, disk serial number, mount point and sensor name. Older agents answer 404 and get no guest entities.
 
-### Fixed
-
-- **Collector interval API call**: `UnraidClient.update_collector_interval` sent `PUT` with `interval_seconds`, which the agent does not accept. It now sends `PATCH /collectors/{name}/interval` with `interval`, and a 409 (the agent manages intervals in Dynamic mode) raises `UnraidDynamicCollectionModeError`, a subclass of `UnraidConflictError`.
-
-- **Selectable CPU temperature source** (#195): On some boards the agent's CPU
-  temperature comes from the wrong chip (for example `nct6798 CPUTIN` instead
-  of `k10temp Tctl` on a Ryzen with an ASUS B550). A new **CPU temperature
-  source** option lists the reported hwmon temperature channels with their
-  current readings. With a channel picked, the CPU temperature sensor shows
-  that channel, whether or not its own temperature sensor is enabled, and is
-  unavailable while the agent does not report it. The default, **Automatic**,
-  keeps the agent's value; the sensor's state and availability change only
-  when a channel is picked. Entity IDs and unique IDs are unchanged.
-
-- **Wrong next parity check date for week-of-month schedules**:
-  - The next parity check no longer lands on any matching weekday for Unraid's "<week> <weekday> of the month" schedules (e.g. first Friday of Jan/Apr/Jul/Oct). Unraid's `date +%e` week guard is not part of `check_cron`, so it is re-applied for month-based schedules with a weekday and a wildcard day-of-month: the week the agent reports in `week_of_month` (W1-W4, WL), or the first week on agents that don't report it. The next parity check sensor shows the week in `schedule_week`, and `schedule_week_inferred` is true when it was assumed.
-- **Clean up Docker and VMs group devices when options are disabled**:
-  - The **<hostname> Docker** and **<hostname> VMs** group devices are now cleanly removed from the device registry when "Show Docker containers as separate devices" (`enable_container_devices`) or "Show virtual machines as separate devices" (`enable_vm_devices`) is disabled in integration options.
-  - All associated entities (Docker CPU, memory, vDisk, container updates, system services for docker/libvirt, and container/VM switches and buttons) are safely reparented under the main server device when the group devices are disabled.
-  - When the options are re-enabled, the Docker and VMs devices and child container/VM devices reappear, and entities are restored under their respective group and child devices.
-
-### Changed
-
-- **Options dialog shows only what applies to the server** (#231): Read-only
-  mode and WebSocket are always shown. The Docker, VM, GPU, network card, USB
-  sensor controller, ZFS pool and fan control options appear only when the
-  server's data shows the related service or hardware (for Docker and VMs: a
-  known service setting first, then an explicitly enabled collector). An
-  option that is on stays visible so it can be turned off, saving the form
-  keeps the stored values of hidden options, and every option is shown when
-  the server's data is not available.
-- **Start Array and Stop Array buttons disabled by default**: New installs get
-  the `array_start` and `array_stop` buttons disabled, so the array cannot be
-  started or stopped by an accidental tap on a dashboard. Existing button
-  entities keep their current state, so automations that press them keep
-  working. The `unraid_management_agent.array_start` and
-  `unraid_management_agent.array_stop` actions are unchanged.
-- **Parity support on pool-only servers**: On servers with no Unraid array
-  disks (the agent reports zero data and zero parity disks, for example a
-  ZFS-only server), parity entities are no longer created: parity progress,
-  next and last parity check, parity check running, parity valid, parity check
-  scheduled, and the parity check buttons. Existing ones are disabled by the
-  integration rather than deleted, and are enabled again if the server later
-  reports array disks. Unraid only changes the array layout while the array is
-  stopped, so the disk counts are checked at setup, when the array starts, and
-  when the agent answers again after being unreachable. The `parity_check_*` actions stay registered but fail
-  with a "this server has no parity array" error instead of calling the agent.
-  Servers with an array, including arrays without parity disks (which run
-  read-checks), are unchanged. `array_start` and `array_stop` still work on
-  pool-only servers, where starting the array imports the pools and starts
-  Docker and VMs.
-- **Re-organized integration options**: Options in the configuration options dialog are now sorted alphabetically by display title with consistent active verb phrasing ("Enable...", "Show..."), proper punctuation, and clean formatting.
-- Dependabot also updates the frontend's npm dependencies (`frontend/`). The deprecated `reviewers` setting is removed; CODEOWNERS requests the review.
-- PR labeler (now the shared tinkerologie workflow) applies at most one type label: the title's Conventional Commit type decides (`feat` → `enhancement`, `fix` → `bug`, other types → neither), then the branch prefix, then a single ticked Type of Change box, then the linked issues. A contradicting type label added by automation is removed; one added by a person is kept. The label is re-evaluated when the title or description is edited, and a CHANGELOG.md-only change no longer adds `documentation`.
-- Dependabot pull requests whose largest update is a patch or minor version merge automatically once the checks and commit statuses on their head commit have finished without a failure (a Codecov check that is still pending is not waited for; a Codecov failure blocks); majors, and pull requests with open review threads, stay for review.
-- Release workflows hardened (least-privilege job permissions, no expressions in shell scripts, no persisted checkout credentials, no dependency caches); scheduled workflows run on Australia/Brisbane time. LICENSE now contains the complete Apache License 2.0 text.
-- Tinkerologie-Bot governance report updated to v1.4.3: an older run can no longer post a stale report after a newer run passed. Workflow formatting tidied.
-- Repository standardised to the tinkerologie layout (STANDARDS.md in tinkerologie/.github): workflows renamed to the standard set (CI, Validate, Release, PR Governance, ...), every action pinned to a commit SHA, shared Dependabot, `.editorconfig`, `.gitattributes` and `CODEOWNERS` files, and organization-wide labels and community files.
-- Tinkerologie-Bot's comment is now a readable "Pull request checklist": each problem is a numbered heading with plain-English guidance and its items listed underneath, and report updates for a pull request are serialised so an older run can never overwrite a newer one.
-- Contribution governance: issues without a `bug` or `enhancement` label are labeled automatically when their type can be determined (issues labeled `question`, `duplicate`, `invalid`, `wontfix`, or `no-type` are skipped), so CodeRabbit can plan them. Pull requests that conflict with the default branch are labeled, and their authors are notified in a comment. Stale issues and pull requests are labeled after 14 days without activity and closed 30 days later. PR governance now re-validates a human-authored, non-draft PR when a bot such as CodeRabbit edits its description, instead of skipping the check and reporting a pass, only maintainers with write access may use `None` instead of linking an issue, and a link to an issue that does not exist now fails the check. Codecov patch coverage must now reach 90%.
-- Tinkerologie-Bot now posts one comment on pull requests that fail PR governance, listing every problem to fix, and updates it once they are fixed. PR governance runs from the default branch's workflow (`pull_request_target`), so a pull request cannot change its own check.
-- **Docker and VMs devices group containers and VMs** instead of the server device listing every container and VM:
-  - Before, every container and VM device was a child device of the server device, along with the Docker sensors:
-
-    ```text
-    Tower
-    ├── Docker CPU Usage, Docker Memory Usage, Docker vDisk Usage, Docker Service,
-    │   Libvirt Service, Container Updates Available, ...server entities
-    ├── plex, sonarr, ... (one child device per container)
-    └── VM · Windows 10, VM · Ubuntu, ... (one child device per VM)
-    ```
-
-  - Now the server device is linked to two devices, **Tower Docker** and **Tower VMs**, which hold the Docker-wide and VM-wide entities, and container and VM devices are child devices of those (Home Assistant child devices can't have children of their own, so the two are regular devices linked to the server):
-
-    ```text
-    Tower
-    ├── ...server entities
-    ├── Tower Docker: CPU Usage, Memory Usage, vDisk Usage, Service,
-    │   Container Updates Available
-    │   └── plex, sonarr, ... (with "Show Docker containers as separate devices")
-    └── Tower VMs: Service (libvirt)
-        └── Windows 10, Ubuntu, ... (with "Show virtual machines as separate devices")
-    ```
-
-  - The Docker and VMs devices are created only when something needs them (a server without VMs gets no VMs device), are named after the server so several servers stay apart, and link to the server's Docker and VMs pages. A new one starts in the server's area with the server's labels, so area and label targets, and the area container and VM devices inherit, are unchanged, and is disabled if the server device is.
-  - Actions and automations that target the server **device** no longer reach container and VM entities or the Docker sensors, because the Docker and VMs devices are linked to the server rather than child devices of it (Home Assistant child devices can't have children of their own). Target the Docker or VMs device, an area, a label or the entities instead. Likewise, disabling or enabling the server device later does not disable or enable the Docker and VMs devices.
-  - Existing installations are migrated on startup without losing anything: each container and VM device is moved under its new parent with the same device ID (device automations keep working), area, name, labels and disabled state, and its entities keep their entity IDs, unique IDs, settings and history. The Docker sensors keep their entity IDs and friendly names ("Tower Docker CPU Usage"); the libvirt service sensor keeps its entity ID and is now called "Tower VMs Service".
-  - VM devices are named after the VM again ("Windows 10" instead of "VM · Windows 10"): the "VMs" device in front of them now tells them apart from containers. The rename is applied to existing VM devices automatically; a name you gave a device is kept.
-  - Entities of containers and VMs added from now on get entity IDs with the Docker or VMs device in them (`sensor.tower_docker_plex_cpu`, `switch.tower_vms_windows_10_power`), as Home Assistant includes the parent device in entity IDs. Existing entity IDs do not change.
-  - With the "separate devices" options off, container and VM entities stay on the server device as before.
-  - The dashboard cards no longer offer the Docker and VMs devices, or container and VM devices, as servers to pick.
-
-- Updated repository and documentation URLs to `tinkerologie` organization
-- Configured Codecov GitHub Actions workflow for tokenless coverage uploads
-
-### Added
-
-- **Entities for every NUT device** ([#181](https://github.com/tinkerologie/ha-unraid-management-agent/issues/181)):
-  Every NUT device other than the primary UPS (a second UPS, an ATS, ...) gets
-  `UPS <device> Battery/Load/Runtime/Power/Energy` sensors and a
-  `UPS <device> Connected` binary sensor, keyed by the exact NUT device name
-  (`nut_<slug>-<hash>_*`, so names such as `UPS`/`ups` or `ups-gpu`/`ups_gpu`
-  never share entities) and on the server device like the existing UPS
-  entities. Entities from earlier builds keyed `nut_<slug>_*` are moved to the
-  new unique IDs when only one current device has that slug. A
-  sensor is only created once the device reports that reading, so an ATS only
-  gets the connected sensor. Every listed device gets the connected sensor, off
-  while it does not answer. The existing `ups_*` entities keep their unique IDs
-  and entity IDs. Needs an agent that reports `/nut` `statuses`
-  ([tinkerologie/unraid-management-agent#206](https://github.com/tinkerologie/unraid-management-agent/issues/206));
-  older agents get no extra entities. NUT `raw_variables` are redacted in
-  diagnostics.
+  - **Entities for every NUT device** ([#181](https://github.com/tinkerologie/ha-unraid-management-agent/issues/181)):
+    Every NUT device other than the primary UPS (a second UPS, an ATS, ...) gets
+    `UPS <device> Battery/Load/Runtime/Power/Energy` sensors and a
+    `UPS <device> Connected` binary sensor, keyed by the exact NUT device name
+    (`nut_<slug>-<hash>_*`, so names such as `UPS`/`ups` or `ups-gpu`/`ups_gpu`
+    never share entities) and on the server device like the existing UPS
+    entities. Entities from earlier builds keyed `nut_<slug>_*` are moved to the
+    new unique IDs when only one current device has that slug. A
+    sensor is only created once the device reports that reading, so an ATS only
+    gets the connected sensor. Every listed device gets the connected sensor, off
+    while it does not answer. The existing `ups_*` entities keep their unique IDs
+    and entity IDs. Needs an agent that reports `/nut` `statuses`
+    ([tinkerologie/unraid-management-agent#206](https://github.com/tinkerologie/unraid-management-agent/issues/206));
+    older agents get no extra entities. NUT `raw_variables` are redacted in
+    diagnostics.
 
 - **Show GPUs as separate devices** option ([#198](https://github.com/tinkerologie/ha-unraid-management-agent/issues/198)):
   - New option, **off by default** like the container and VM device options. With it off nothing changes: GPU sensors stay on the Unraid server device with their current names, so device-based triggers, conditions and dashboard cards keep working.
@@ -299,6 +204,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Collector interval API call**: `UnraidClient.update_collector_interval` sent `PUT` with `interval_seconds`, which the agent does not accept. It now sends `PATCH /collectors/{name}/interval` with `interval`, and a 409 (the agent manages intervals in Dynamic mode) raises `UnraidDynamicCollectionModeError`, a subclass of `UnraidConflictError`.
+
+- **Selectable CPU temperature source** (#195): On some boards the agent's CPU
+  temperature comes from the wrong chip (for example `nct6798 CPUTIN` instead
+  of `k10temp Tctl` on a Ryzen with an ASUS B550). A new **CPU temperature
+  source** option lists the reported hwmon temperature channels with their
+  current readings. With a channel picked, the CPU temperature sensor shows
+  that channel, whether or not its own temperature sensor is enabled, and is
+  unavailable while the agent does not report it. The default, **Automatic**,
+  keeps the agent's value; the sensor's state and availability change only
+  when a channel is picked. Entity IDs and unique IDs are unchanged.
+
+- **Wrong next parity check date for week-of-month schedules**:
+  - The next parity check no longer lands on any matching weekday for Unraid's "<week> <weekday> of the month" schedules (e.g. first Friday of Jan/Apr/Jul/Oct). Unraid's `date +%e` week guard is not part of `check_cron`, so it is re-applied for month-based schedules with a weekday and a wildcard day-of-month: the week the agent reports in `week_of_month` (W1-W4, WL), or the first week on agents that don't report it. The next parity check sensor shows the week in `schedule_week`, and `schedule_week_inferred` is true when it was assumed.
+- **Clean up Docker and VMs group devices when options are disabled**:
+  - The **<hostname> Docker** and **<hostname> VMs** group devices are now cleanly removed from the device registry when "Show Docker containers as separate devices" (`enable_container_devices`) or "Show virtual machines as separate devices" (`enable_vm_devices`) is disabled in integration options.
+  - All associated entities (Docker CPU, memory, vDisk, container updates, system services for docker/libvirt, and container/VM switches and buttons) are safely reparented under the main server device when the group devices are disabled.
+  - When the options are re-enabled, the Docker and VMs devices and child container/VM devices reappear, and entities are restored under their respective group and child devices.
+
 - **Repair issues lagged one poll behind**: repair checks ran against the previous update's data; they now use the data from the current update, so issues are raised and cleared one poll sooner.
 - **hwmon temperature and fan sensors of USB controllers survive reconnects and a second identical controller**: lm-sensors names USB HID chips (Aquacomputer Octo, Corsair Commander, ...) `<driver>-hid-<bus>-<hid id>`, and the HID id changes every time the device re-enumerates on USB. Temperature sensors were keyed by that name, so a reconnect removed the sensor (stale cleanup) and created a new, disabled one. They are now keyed by the controller's `device_id` (USB serial, reported by agents with [tinkerologie/unraid-management-agent#216](https://github.com/tinkerologie/unraid-management-agent/pull/216)), or by driver and bus type with older agents. Fans with a `device_id` are keyed by it as well, so two identical controllers keep separate fan sensors and adding a second one leaves the first one's sensors in place. Existing entities are moved to the new unique IDs (entity ID, name and settings kept) when each sensor is created, including at runtime and for a controller that was unplugged at startup, and only when it is unambiguous which controller they belonged to. Fans are now created as they appear, like temperatures. A device-keyed fan becomes unavailable when its controller is missing and never takes `fan_control` data matched only by fan number; no fan takes `fan_control` data by number when it is missing from the agent's fan list, and a duplicate fan name keeps its suffix so it cannot match another fan's control device.
 
@@ -348,6 +272,78 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   longer refresh every entity.
 
 ### Changed
+
+- **Options dialog shows only what applies to the server** (#231): Read-only
+  mode and WebSocket are always shown. The Docker, VM, GPU, network card, USB
+  sensor controller, ZFS pool and fan control options appear only when the
+  server's data shows the related service or hardware (for Docker and VMs: a
+  known service setting first, then an explicitly enabled collector). An
+  option that is on stays visible so it can be turned off, saving the form
+  keeps the stored values of hidden options, and every option is shown when
+  the server's data is not available.
+- **Start Array and Stop Array buttons disabled by default**: New installs get
+  the `array_start` and `array_stop` buttons disabled, so the array cannot be
+  started or stopped by an accidental tap on a dashboard. Existing button
+  entities keep their current state, so automations that press them keep
+  working. The `unraid_management_agent.array_start` and
+  `unraid_management_agent.array_stop` actions are unchanged.
+- **Parity support on pool-only servers**: On servers with no Unraid array
+  disks (the agent reports zero data and zero parity disks, for example a
+  ZFS-only server), parity entities are no longer created: parity progress,
+  next and last parity check, parity check running, parity valid, parity check
+  scheduled, and the parity check buttons. Existing ones are disabled by the
+  integration rather than deleted, and are enabled again if the server later
+  reports array disks. Unraid only changes the array layout while the array is
+  stopped, so the disk counts are checked at setup, when the array starts, and
+  when the agent answers again after being unreachable. The `parity_check_*` actions stay registered but fail
+  with a "this server has no parity array" error instead of calling the agent.
+  Servers with an array, including arrays without parity disks (which run
+  read-checks), are unchanged. `array_start` and `array_stop` still work on
+  pool-only servers, where starting the array imports the pools and starts
+  Docker and VMs.
+- **Re-organized integration options**: Options in the configuration options dialog are now sorted alphabetically by display title with consistent active verb phrasing ("Enable...", "Show..."), proper punctuation, and clean formatting.
+- Dependabot also updates the frontend's npm dependencies (`frontend/`). The deprecated `reviewers` setting is removed; CODEOWNERS requests the review.
+- PR labeler (now the shared tinkerologie workflow) applies at most one type label: the title's Conventional Commit type decides (`feat` → `enhancement`, `fix` → `bug`, other types → neither), then the branch prefix, then a single ticked Type of Change box, then the linked issues. A contradicting type label added by automation is removed; one added by a person is kept. The label is re-evaluated when the title or description is edited, and a CHANGELOG.md-only change no longer adds `documentation`.
+- Dependabot pull requests whose largest update is a patch or minor version merge automatically once the checks and commit statuses on their head commit have finished without a failure (a Codecov check that is still pending is not waited for; a Codecov failure blocks); majors, and pull requests with open review threads, stay for review.
+- Release workflows hardened (least-privilege job permissions, no expressions in shell scripts, no persisted checkout credentials, no dependency caches); scheduled workflows run on Australia/Brisbane time. LICENSE now contains the complete Apache License 2.0 text.
+- Tinkerologie-Bot governance report updated to v1.4.3: an older run can no longer post a stale report after a newer run passed. Workflow formatting tidied.
+- Repository standardised to the tinkerologie layout (STANDARDS.md in tinkerologie/.github): workflows renamed to the standard set (CI, Validate, Release, PR Governance, ...), every action pinned to a commit SHA, shared Dependabot, `.editorconfig`, `.gitattributes` and `CODEOWNERS` files, and organization-wide labels and community files.
+- Tinkerologie-Bot's comment is now a readable "Pull request checklist": each problem is a numbered heading with plain-English guidance and its items listed underneath, and report updates for a pull request are serialised so an older run can never overwrite a newer one.
+- Contribution governance: issues without a `bug` or `enhancement` label are labeled automatically when their type can be determined (issues labeled `question`, `duplicate`, `invalid`, `wontfix`, or `no-type` are skipped), so CodeRabbit can plan them. Pull requests that conflict with the default branch are labeled, and their authors are notified in a comment. Stale issues and pull requests are labeled after 14 days without activity and closed 30 days later. PR governance now re-validates a human-authored, non-draft PR when a bot such as CodeRabbit edits its description, instead of skipping the check and reporting a pass, only maintainers with write access may use `None` instead of linking an issue, and a link to an issue that does not exist now fails the check. Codecov patch coverage must now reach 90%.
+- Tinkerologie-Bot now posts one comment on pull requests that fail PR governance, listing every problem to fix, and updates it once they are fixed. PR governance runs from the default branch's workflow (`pull_request_target`), so a pull request cannot change its own check.
+- **Docker and VMs devices group containers and VMs** instead of the server device listing every container and VM:
+  - Before, every container and VM device was a child device of the server device, along with the Docker sensors:
+
+    ```text
+    Tower
+    ├── Docker CPU Usage, Docker Memory Usage, Docker vDisk Usage, Docker Service,
+    │   Libvirt Service, Container Updates Available, ...server entities
+    ├── plex, sonarr, ... (one child device per container)
+    └── VM · Windows 10, VM · Ubuntu, ... (one child device per VM)
+    ```
+
+  - Now the server device is linked to two devices, **Tower Docker** and **Tower VMs**, which hold the Docker-wide and VM-wide entities, and container and VM devices are child devices of those (Home Assistant child devices can't have children of their own, so the two are regular devices linked to the server):
+
+    ```text
+    Tower
+    ├── ...server entities
+    ├── Tower Docker: CPU Usage, Memory Usage, vDisk Usage, Service,
+    │   Container Updates Available
+    │   └── plex, sonarr, ... (with "Show Docker containers as separate devices")
+    └── Tower VMs: Service (libvirt)
+        └── Windows 10, Ubuntu, ... (with "Show virtual machines as separate devices")
+    ```
+
+  - The Docker and VMs devices are created only when something needs them (a server without VMs gets no VMs device), are named after the server so several servers stay apart, and link to the server's Docker and VMs pages. A new one starts in the server's area with the server's labels, so area and label targets, and the area container and VM devices inherit, are unchanged, and is disabled if the server device is.
+  - Actions and automations that target the server **device** no longer reach container and VM entities or the Docker sensors, because the Docker and VMs devices are linked to the server rather than child devices of it (Home Assistant child devices can't have children of their own). Target the Docker or VMs device, an area, a label or the entities instead. Likewise, disabling or enabling the server device later does not disable or enable the Docker and VMs devices.
+  - Existing installations are migrated on startup without losing anything: each container and VM device is moved under its new parent with the same device ID (device automations keep working), area, name, labels and disabled state, and its entities keep their entity IDs, unique IDs, settings and history. The Docker sensors keep their entity IDs and friendly names ("Tower Docker CPU Usage"); the libvirt service sensor keeps its entity ID and is now called "Tower VMs Service".
+  - VM devices are named after the VM again ("Windows 10" instead of "VM · Windows 10"): the "VMs" device in front of them now tells them apart from containers. The rename is applied to existing VM devices automatically; a name you gave a device is kept.
+  - Entities of containers and VMs added from now on get entity IDs with the Docker or VMs device in them (`sensor.tower_docker_plex_cpu`, `switch.tower_vms_windows_10_power`), as Home Assistant includes the parent device in entity IDs. Existing entity IDs do not change.
+  - With the "separate devices" options off, container and VM entities stay on the server device as before.
+  - The dashboard cards no longer offer the Docker and VMs devices, or container and VM devices, as servers to pick.
+
+- Updated repository and documentation URLs to `tinkerologie` organization
+- Configured Codecov GitHub Actions workflow for tokenless coverage uploads
 
 - **Less polling of unused and slow-changing data** ([#183](https://github.com/tinkerologie/ha-unraid-management-agent/issues/183)): ZFS datasets and snapshots are no longer fetched on every 30-second poll, because no entity uses them (WebSocket updates still fill them). Parity history, used only by the _Last parity check_ sensor, is fetched on the first poll and then at most every 15 minutes; a failed fetch keeps the previous value and is retried on the next poll. This saves 356 requests an hour and, on servers with many ZFS snapshots, megabytes of JSON an hour.
 - **CI test & Codecov workflow** — updated `.github/workflows/test.yml` to target `custom_components/unraid_management_agent`, provision dependencies via `uv pip install -e ".[dev,test]"`, upload coverage reports to Codecov via `codecov/codecov-action@v5`, and added concurrency cancellation.
