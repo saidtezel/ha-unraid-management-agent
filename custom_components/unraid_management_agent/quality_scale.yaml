@@ -82,7 +82,7 @@ rules:
     comment: Entities use CoordinatorEntity which handles unavailability
   integration-owner:
     status: done
-    comment: "@ruaan-deysel in manifest.json codeowners"
+    comment: "@saidtezel in manifest.json codeowners"
   log-when-unavailable:
     status: done
     comment: Logs unavailability once with recovery message

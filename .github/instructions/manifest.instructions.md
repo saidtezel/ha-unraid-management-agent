@@ -12,12 +12,12 @@ applyTo: "**/manifest.json"
 {
   "domain": "unraid_management_agent",
   "name": "Unraid Management Agent",
-  "codeowners": ["@ruaan-deysel"],
+  "codeowners": ["@saidtezel"],
   "config_flow": true,
-  "documentation": "https://github.com/tinkerologie/ha-unraid-management-agent",
+  "documentation": "https://github.com/saidtezel/ha-unraid-management-agent",
   "integration_type": "device",
   "iot_class": "local_push",
-  "issue_tracker": "https://github.com/tinkerologie/ha-unraid-management-agent/issues",
+  "issue_tracker": "https://github.com/saidtezel/ha-unraid-management-agent/issues",
   "requirements": [],
   "version": "2026.2.2"
 }
