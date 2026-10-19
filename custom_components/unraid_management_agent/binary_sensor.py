@@ -12,7 +12,7 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
     BinarySensorEntityDescription,
 )
-from homeassistant.const import EntityCategory
+from homeassistant.const import EntityCategory, Platform
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.util import slugify
@@ -39,6 +39,7 @@ from .entity import (
     build_group_device_info,
     is_group_device_enabled,
 )
+from .entity_selection import async_filter_add_entities
 from .nic import (
     NICEntitySpec,
     UnraidNICBinarySensorEntityDescription,
@@ -486,6 +487,9 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up Unraid binary sensor entities."""
+    async_add_entities = async_filter_add_entities(
+        entry, Platform.BINARY_SENSOR, async_add_entities
+    )
     coordinator = entry.runtime_data.coordinator
     data = coordinator.data
 

@@ -23,6 +23,7 @@ import logging
 from typing import Any
 
 from homeassistant.components.update import UpdateEntity, UpdateEntityFeature
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
@@ -37,6 +38,7 @@ from .entity import (
     container_devices_enabled,
     read_only_enabled,
 )
+from .entity_selection import async_filter_add_entities
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -102,6 +104,9 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up Unraid update entities."""
+    async_add_entities = async_filter_add_entities(
+        entry, Platform.UPDATE, async_add_entities
+    )
     coordinator = entry.runtime_data.coordinator
 
     async_add_entities([UnraidOSUpdate(coordinator)])

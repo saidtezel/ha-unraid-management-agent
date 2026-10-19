@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Choose which entities to create**: a new "Entities to create" list, shown when adding a server and under **Configure**, picks the groups of entities the integration creates (container controls, container sensors, VM controls, VM sensors, array and parity controls, shutdown/reboot buttons, disk spin switches, disk sensors, share sensors, network interface sensors, service sensors, User Scripts buttons, remote shares, unassigned devices, plugin updates). Server-wide sensors are always created. New servers start with only disk and share sensors; existing servers keep every group. Unticking a group removes its entities.
+
+### Changed
+
+- Repository metadata (manifest, `pyproject.toml`, README, CODEOWNERS, dashboard card documentation link) now points to the `saidtezel/ha-unraid-management-agent` fork and `saidtezel/unraid-management-agent`. The original copyright notice is kept in `NOTICE`.
+
 ## [2026.10.0] — 2026-10-19
 
 ### Added

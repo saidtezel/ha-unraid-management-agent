@@ -229,6 +229,31 @@ If your Unraid Management Agent advertises via Zeroconf (`_unraid-mgmt-agent._tc
    - **API Token** _(optional)_: Required if `API_TOKEN` is configured on your agent (agent v2026.08.02+). Sent as a bearer token. Supports automatic re-authentication if rotated.
    - **Enable WebSocket**: Checked by default for instant local push updates.
 4. Click **Submit**.
+5. Choose which entities to create (see [Choosing entities](#choosing-entities)) and click **Submit**.
+
+### Choosing entities
+
+Instead of creating an entity for everything on the server, the integration lets you pick groups of entities. The choice is offered when you add a server and under **Configure** at any time. Server-wide sensors (CPU, memory, array state, UPS, notifications, OS update and so on) are always created.
+
+| Group                                  | Entities                                                         |
+| :------------------------------------- | :--------------------------------------------------------------- |
+| **Docker container controls**          | Start/stop and autostart switches, restart buttons per container |
+| **Docker container sensors**           | CPU, memory, network and restart count sensors per container     |
+| **VM controls**                        | Power switches and stop/restart/pause/resume/reset buttons       |
+| **VM sensors**                         | VM metric sensors and guest agent data                           |
+| **Array and parity check controls**    | Array start/stop, clear disk stats and parity check buttons      |
+| **Server shutdown and reboot buttons** | Shutdown and reboot buttons                                      |
+| **Disk spin up/down switches**         | One spin switch per physical disk                                |
+| **Per-disk sensors**                   | Usage, health, temperature, SMART errors and I/O per disk        |
+| **Per-share sensors**                  | Usage and related sensors per user share                         |
+| **Network interface sensors**          | Link state and RX/TX per physical interface                      |
+| **Service status sensors**             | System and network service running sensors                       |
+| **User Scripts buttons**               | One button per user script                                       |
+| **Remote shares**                      | Mount switches and sensors for remote shares                     |
+| **Unassigned device sensors**          | Mounted and size sensors for unassigned devices                  |
+| **Plugin update entities**             | One update entity per plugin                                     |
+
+A new server starts with only **Per-disk sensors** and **Per-share sensors** selected, so no controls are created until you choose them. Servers added before this option existed keep every group until you change it. Unticking a group removes its entities (with their history and customizations); ticking it again creates them anew. The options below still apply on top: read-only mode removes all controls, and container update entities follow **Enable container update checks**.
 
 ### Integration Options
 
@@ -236,6 +261,7 @@ Click **Configure** on an active integration entry to adjust operational options
 
 | Option                                              | Default | Description                                                                                                                                                                                                        |
 | :-------------------------------------------------- | :-----: | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Entities to create**                              |    —    | The entity groups to create; see [Choosing entities](#choosing-entities).                                                                                                                                          |
 | **Enable container update checks**                  | `false` | Tracks container image digest updates and adds an `update` entity per container.                                                                                                                                   |
 | **Enable fan control entities**                     | `true`  | Exposes PWM number control entities (`number`) for configurable fan controllers.                                                                                                                                   |
 | **Enable read-only mode (sensors only)**            | `false` | Restricts the integration to monitoring only, disabling all switches, buttons, and control actions.                                                                                                                |

@@ -58,6 +58,7 @@ from .entity import (
     is_group_device_enabled,
     zfs_pool_device_identifier,
 )
+from .entity_selection import async_remove_unselected_entities
 from .frontend import async_register_frontend
 from .hwmon import hid_drivers_without_ids, hwmon_controller_of
 from .nic import async_remove_nic_devices, current_card_ids
@@ -681,6 +682,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: UnraidConfigEntry) -> bo
     )
     _async_cleanup_disabled_option_devices(hass, entry, coordinator)
     _async_move_child_devices_to_groups(hass, entry, coordinator)
+    async_remove_unselected_entities(hass, entry)
 
     # Set up platforms
     await hass.config_entries.async_forward_entry_setups(entry, platforms)

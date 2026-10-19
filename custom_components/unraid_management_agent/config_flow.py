@@ -41,6 +41,7 @@ from .const import (
     CONF_ENABLE_VM_DEVICES,
     CONF_ENABLE_WEBSOCKET,
     CONF_ENABLE_ZFS_POOL_DEVICES,
+    CONF_ENTITY_GROUPS,
     CONF_READ_ONLY,
     CPU_TEMPERATURE_SOURCE_AUTO,
     DEFAULT_CPU_TEMPERATURE_SOURCE,
@@ -61,6 +62,11 @@ from .const import (
     ERROR_TIMEOUT,
     ERROR_UNKNOWN,
 )
+from .entity_selection import (
+    DEFAULT_NEW_ENTRY_GROUPS,
+    ENTITY_GROUPS,
+    selected_groups,
+)
 from .hwmon import hwmon_controller_of, hwmon_temperature_channels
 
 if TYPE_CHECKING:
@@ -70,6 +76,17 @@ _LOGGER = logging.getLogger(__name__)
 
 # The agent's API token (Settings > Unraid Management Agent > Authentication)
 TOKEN_SELECTOR = TextSelector(TextSelectorConfig(type=TextSelectorType.PASSWORD))
+
+
+# Which groups of entities to create, shown as a list of checkboxes
+ENTITY_GROUPS_SELECTOR = SelectSelector(
+    SelectSelectorConfig(
+        options=list(ENTITY_GROUPS),
+        multiple=True,
+        mode=SelectSelectorMode.LIST,
+        translation_key=CONF_ENTITY_GROUPS,
+    )
+)
 
 
 class InvalidAuthError(Exception):
@@ -137,6 +154,8 @@ class UnraidConfigFlow(ConfigFlow, domain=DOMAIN):
         """Initialize config flow."""
         self._discovered_host: str = ""
         self._discovered_port: int = DEFAULT_PORT
+        self._user_input: dict[str, Any] = {}
+        self._title: str = ""
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -163,10 +182,9 @@ class UnraidConfigFlow(ConfigFlow, domain=DOMAIN):
                 )
                 self._abort_if_unique_id_configured()
 
-                return self.async_create_entry(
-                    title=info["title"],
-                    data=user_input,
-                )
+                self._user_input = user_input
+                self._title = info["title"]
+                return await self.async_step_entities()
 
         schema = vol.Schema(
             {
@@ -189,6 +207,28 @@ class UnraidConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=schema,
             errors=errors,
+        )
+
+    async def async_step_entities(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Let the user pick which groups of entities to create."""
+        if user_input is not None:
+            return self.async_create_entry(
+                title=self._title,
+                data=self._user_input,
+                options={CONF_ENTITY_GROUPS: user_input.get(CONF_ENTITY_GROUPS, [])},
+            )
+
+        return self.async_show_form(
+            step_id="entities",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_ENTITY_GROUPS, default=list(DEFAULT_NEW_ENTRY_GROUPS)
+                    ): ENTITY_GROUPS_SELECTOR,
+                }
+            ),
         )
 
     async def async_step_zeroconf(
@@ -481,11 +521,20 @@ class UnraidOptionsFlowHandler(OptionsFlowWithReload):
             if visible & group:
                 visible |= group
 
+        groups = selected_groups(options)
         schema: dict[Any, Any] = {
-            vol.Optional(key, default=options.get(key, default)): cv.boolean
-            for key, default in _BOOLEAN_OPTIONS
-            if key in visible
+            vol.Optional(
+                CONF_ENTITY_GROUPS,
+                default=[group for group in ENTITY_GROUPS if group in groups],
+            ): ENTITY_GROUPS_SELECTOR,
         }
+        schema.update(
+            {
+                vol.Optional(key, default=options.get(key, default)): cv.boolean
+                for key, default in _BOOLEAN_OPTIONS
+                if key in visible
+            }
+        )
 
         cpu_source = options.get(
             CONF_CPU_TEMPERATURE_SOURCE, DEFAULT_CPU_TEMPERATURE_SOURCE

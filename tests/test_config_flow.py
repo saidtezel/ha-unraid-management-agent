@@ -23,11 +23,15 @@ from custom_components.unraid_management_agent.const import (
     CONF_ENABLE_VM_DEVICES,
     CONF_ENABLE_WEBSOCKET,
     CONF_ENABLE_ZFS_POOL_DEVICES,
+    CONF_ENTITY_GROUPS,
     CONF_READ_ONLY,
     DOMAIN,
     ERROR_CANNOT_CONNECT,
     ERROR_TIMEOUT,
     ERROR_UNKNOWN,
+)
+from custom_components.unraid_management_agent.entity_selection import (
+    DEFAULT_NEW_ENTRY_GROUPS,
 )
 
 from .const import MOCK_CONFIG, mock_system_info
@@ -62,6 +66,8 @@ async def test_form_user_success(
             result["flow_id"],
             MOCK_CONFIG,
         )
+        assert result2["step_id"] == "entities"
+        result2 = await hass.config_entries.flow.async_configure(result2["flow_id"], {})
         await hass.async_block_till_done()
 
     assert result2["type"] == FlowResultType.CREATE_ENTRY
@@ -74,6 +80,10 @@ async def test_form_user_success(
     )
     # Verify setup was called
     assert len(mock_setup_entry.mock_calls) == 1
+    # New entries preselect only the default entity groups
+    assert result2["result"].options == {
+        CONF_ENTITY_GROUPS: list(DEFAULT_NEW_ENTRY_GROUPS)
+    }
 
 
 async def test_form_user_with_options(
@@ -107,6 +117,8 @@ async def test_form_user_with_options(
             result["flow_id"],
             user_input,
         )
+        assert result2["step_id"] == "entities"
+        result2 = await hass.config_entries.flow.async_configure(result2["flow_id"], {})
         await hass.async_block_till_done()
 
     assert result2["type"] == FlowResultType.CREATE_ENTRY
@@ -249,6 +261,7 @@ async def test_options_flow(
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "init"
     assert [k.schema for k in result["data_schema"].schema] == [
+        CONF_ENTITY_GROUPS,
         CONF_ENABLE_CONTAINER_UPDATES,
         CONF_ENABLE_FAN_CONTROL,
         CONF_READ_ONLY,
@@ -511,6 +524,8 @@ async def test_validate_input_missing_hostname(
             result["flow_id"],
             MOCK_CONFIG,
         )
+        assert result2["step_id"] == "entities"
+        result2 = await hass.config_entries.flow.async_configure(result2["flow_id"], {})
         await hass.async_block_till_done()
 
     # Should succeed with "unknown" hostname
@@ -556,6 +571,8 @@ async def test_zeroconf_discovery_new_entry(
             result["flow_id"],
             {CONF_HOST: "192.168.1.100", CONF_PORT: 8043},
         )
+        assert result2["step_id"] == "entities"
+        result2 = await hass.config_entries.flow.async_configure(result2["flow_id"], {})
         await hass.async_block_till_done()
 
     assert result2["type"] == FlowResultType.CREATE_ENTRY

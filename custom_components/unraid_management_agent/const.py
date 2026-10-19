@@ -19,6 +19,7 @@ CONF_ENABLE_GPU_DEVICES: Final = "enable_gpu_devices"
 CONF_ENABLE_HWMON_DEVICES: Final = "enable_hwmon_devices"
 CONF_ENABLE_ZFS_POOL_DEVICES: Final = "enable_zfs_pool_devices"
 CONF_ENABLE_NIC_DEVICES: Final = "enable_nic_devices"
+CONF_ENTITY_GROUPS: Final = "entity_groups"
 
 # Default values
 DEFAULT_PORT: Final = 8043
