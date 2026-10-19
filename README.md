@@ -1,13 +1,13 @@
 # Unraid Management Agent Home Assistant Integration
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs)
-[![GitHub Release](https://img.shields.io/github/release/tinkerologie/ha-unraid-management-agent.svg)](https://github.com/tinkerologie/ha-unraid-management-agent/releases)
-[![codecov](https://codecov.io/gh/tinkerologie/ha-unraid-management-agent/branch/main/graph/badge.svg)](https://codecov.io/gh/tinkerologie/ha-unraid-management-agent)
+[![GitHub Release](https://img.shields.io/github/release/saidtezel/ha-unraid-management-agent.svg)](https://github.com/saidtezel/ha-unraid-management-agent/releases)
+[![codecov](https://codecov.io/gh/saidtezel/ha-unraid-management-agent/branch/main/graph/badge.svg)](https://codecov.io/gh/saidtezel/ha-unraid-management-agent)
 [![Community Forum](https://img.shields.io/badge/Community-Forum-blue)](https://community.home-assistant.io/t/unraid-integration)
-[![License](https://img.shields.io/github/license/tinkerologie/ha-unraid-management-agent.svg)](https://github.com/tinkerologie/ha-unraid-management-agent/blob/main/LICENSE)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/tinkerologie/ha-unraid-management-agent)
+[![License](https://img.shields.io/github/license/saidtezel/ha-unraid-management-agent.svg)](https://github.com/saidtezel/ha-unraid-management-agent/blob/main/LICENSE)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/saidtezel/ha-unraid-management-agent)
 
-This custom integration connects Home Assistant to the [Unraid Management Agent](https://github.com/tinkerologie/unraid-management-agent) (UMA) running on your Unraid server. It delivers comprehensive monitoring, interactive controls, dynamic entity discovery, real-time WebSocket telemetry, and a bundled suite of custom Lovelace dashboard cards.
+This custom integration connects Home Assistant to the [Unraid Management Agent](https://github.com/saidtezel/unraid-management-agent) (UMA) running on your Unraid server. It delivers comprehensive monitoring, interactive controls, dynamic entity discovery, real-time WebSocket telemetry, and a bundled suite of custom Lovelace dashboard cards.
 
 ---
 
@@ -196,18 +196,18 @@ A healthy agent responds with JSON status `{"status":"ok",...}`.
 
 ### Method 1: Via HACS (Recommended)
 
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=tinkerologie&repository=ha-unraid-management-agent&category=integration)
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=saidtezel&repository=ha-unraid-management-agent&category=integration)
 
 1. Open **HACS** in Home Assistant.
 2. Navigate to **Integrations**.
 3. Click the three-dot menu in the upper-right corner and select **Custom repositories**.
-4. Enter `https://github.com/tinkerologie/ha-unraid-management-agent` and select category **Integration**.
+4. Enter `https://github.com/saidtezel/ha-unraid-management-agent` and select category **Integration**.
 5. Click **Add**, find **Unraid Management Agent**, and click **Download**.
 6. Restart Home Assistant.
 
 ### Method 2: Manual Installation
 
-1. Download the latest release archive from the [GitHub Releases](https://github.com/tinkerologie/ha-unraid-management-agent/releases) page.
+1. Download the latest release archive from the [GitHub Releases](https://github.com/saidtezel/ha-unraid-management-agent/releases) page.
 2. Extract the `custom_components/unraid_management_agent` folder into your Home Assistant `<config>/custom_components/` directory.
 3. Restart Home Assistant.
 
@@ -229,6 +229,31 @@ If your Unraid Management Agent advertises via Zeroconf (`_unraid-mgmt-agent._tc
    - **API Token** _(optional)_: Required if `API_TOKEN` is configured on your agent (agent v2026.08.02+). Sent as a bearer token. Supports automatic re-authentication if rotated.
    - **Enable WebSocket**: Checked by default for instant local push updates.
 4. Click **Submit**.
+5. Choose which entities to create (see [Choosing entities](#choosing-entities)) and click **Submit**.
+
+### Choosing entities
+
+Instead of creating an entity for everything on the server, the integration lets you pick groups of entities. The choice is offered when you add a server and under **Configure** at any time. Server-wide sensors (CPU, memory, array state, UPS, notifications, OS update and so on) are always created.
+
+| Group                                  | Entities                                                         |
+| :------------------------------------- | :--------------------------------------------------------------- |
+| **Docker container controls**          | Start/stop and autostart switches, restart buttons per container |
+| **Docker container sensors**           | CPU, memory, network and restart count sensors per container     |
+| **VM controls**                        | Power switches and stop/restart/pause/resume/reset buttons       |
+| **VM sensors**                         | VM metric sensors and guest agent data                           |
+| **Array and parity check controls**    | Array start/stop, clear disk stats and parity check buttons      |
+| **Server shutdown and reboot buttons** | Shutdown and reboot buttons                                      |
+| **Disk spin up/down switches**         | One spin switch per physical disk                                |
+| **Per-disk sensors**                   | Usage, health, temperature, SMART errors and I/O per disk        |
+| **Per-share sensors**                  | Usage and related sensors per user share                         |
+| **Network interface sensors**          | Link state and RX/TX per physical interface                      |
+| **Service status sensors**             | System and network service running sensors                       |
+| **User Scripts buttons**               | One button per user script                                       |
+| **Remote shares**                      | Mount switches and sensors for remote shares                     |
+| **Unassigned device sensors**          | Mounted and size sensors for unassigned devices                  |
+| **Plugin update entities**             | One update entity per plugin                                     |
+
+A new server starts with only **Per-disk sensors** and **Per-share sensors** selected, so no controls are created until you choose them. Servers added before this option existed keep every group until you change it. Unticking a group removes its entities (with their history and customizations); ticking it again creates them anew. The options below still apply on top: read-only mode removes all controls, and container update entities follow **Enable container update checks**.
 
 ### Integration Options
 
@@ -236,6 +261,7 @@ Click **Configure** on an active integration entry to adjust operational options
 
 | Option                                              | Default | Description                                                                                                                                                                                                        |
 | :-------------------------------------------------- | :-----: | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Entities to create**                              |    —    | The entity groups to create; see [Choosing entities](#choosing-entities).                                                                                                                                          |
 | **Enable container update checks**                  | `false` | Tracks container image digest updates and adds an `update` entity per container.                                                                                                                                   |
 | **Enable fan control entities**                     | `true`  | Exposes PWM number control entities (`number`) for configurable fan controllers.                                                                                                                                   |
 | **Enable read-only mode (sensors only)**            | `false` | Restricts the integration to monitoring only, disabling all switches, buttons, and control actions.                                                                                                                |
@@ -470,7 +496,7 @@ Contributions are welcome! Please ensure:
 
 ## License
 
-This project is licensed under the Apache License 2.0. See [LICENSE](https://github.com/tinkerologie/ha-unraid-management-agent/blob/main/LICENSE) for details.
+This project is licensed under the Apache License 2.0. See [LICENSE](https://github.com/saidtezel/ha-unraid-management-agent/blob/main/LICENSE) for details.
 
 ## Trademark Notice
 

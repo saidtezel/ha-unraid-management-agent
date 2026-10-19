@@ -26,6 +26,7 @@ from homeassistant.components.sensor import (
 from homeassistant.const import (
     PERCENTAGE,
     EntityCategory,
+    Platform,
     UnitOfDataRate,
     UnitOfEnergy,
     UnitOfFrequency,
@@ -97,6 +98,7 @@ from .entity import (
     vm_devices_enabled,
     zfs_pool_devices_enabled,
 )
+from .entity_selection import async_filter_add_entities
 from .hwmon import (
     async_adopt_unique_id,
     fan_legacy_unique_ids,
@@ -5008,6 +5010,9 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up Unraid sensor entities."""
+    async_add_entities = async_filter_add_entities(
+        entry, Platform.SENSOR, async_add_entities
+    )
     coordinator = entry.runtime_data.coordinator
     data = coordinator.data
 

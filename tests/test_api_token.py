@@ -143,6 +143,7 @@ async def test_user_flow_stores_token(
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], {**MOCK_CONFIG, CONF_API_TOKEN: "s3cret"}
         )
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert result["data"][CONF_API_TOKEN] == "s3cret"
     assert client_class.call_args.kwargs["api_token"] == "s3cret"

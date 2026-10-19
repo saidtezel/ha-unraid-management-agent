@@ -45,11 +45,13 @@ from custom_components.unraid_management_agent.const import (
     CONF_ENABLE_VM_DEVICES,
     CONF_ENABLE_WEBSOCKET,
     CONF_ENABLE_ZFS_POOL_DEVICES,
+    CONF_ENTITY_GROUPS,
     CONF_READ_ONLY,
     CPU_TEMPERATURE_SOURCE_AUTO,
     DOMAIN,
 )
 from custom_components.unraid_management_agent.coordinator import UnraidData
+from custom_components.unraid_management_agent.entity_selection import ENTITY_GROUPS
 
 from .const import MOCK_CONFIG
 
@@ -176,7 +178,11 @@ async def test_minimal_server_shows_only_general_options(
 ) -> None:
     """A server without optional hardware or services shows two options."""
     result = await _open(hass, loaded_entry, _minimal_data())
-    assert _schema_keys(result) == [CONF_READ_ONLY, CONF_ENABLE_WEBSOCKET]
+    assert _schema_keys(result) == [
+        CONF_ENTITY_GROUPS,
+        CONF_READ_ONLY,
+        CONF_ENABLE_WEBSOCKET,
+    ]
 
 
 async def test_full_server_shows_every_option(
@@ -184,7 +190,11 @@ async def test_full_server_shows_every_option(
 ) -> None:
     """A server with every capability shows all options in order."""
     result = await _open(hass, loaded_entry, _full_data())
-    assert _schema_keys(result) == [*ALL_BOOLEAN_KEYS, CONF_CPU_TEMPERATURE_SOURCE]
+    assert _schema_keys(result) == [
+        CONF_ENTITY_GROUPS,
+        *ALL_BOOLEAN_KEYS,
+        CONF_CPU_TEMPERATURE_SOURCE,
+    ]
     assert _cpu_choices(result) == [
         {"value": CPU_TEMPERATURE_SOURCE_AUTO, "label": "Automatic"},
         {"value": K10TEMP_KEY, "label": "k10temp Tctl (45.1 °C)"},
@@ -204,6 +214,7 @@ async def test_enabled_option_stays_visible(
     result = await _open(hass, loaded_entry, _minimal_data())
     # The Docker options are shown together
     assert _schema_keys(result) == [
+        CONF_ENTITY_GROUPS,
         CONF_ENABLE_CONTAINER_UPDATES,
         CONF_READ_ONLY,
         CONF_ENABLE_WEBSOCKET,
@@ -240,6 +251,8 @@ async def test_hidden_options_keep_their_values(
         CONF_CPU_TEMPERATURE_SOURCE: CPU_TEMPERATURE_SOURCE_AUTO,
         CONF_READ_ONLY: True,
         CONF_ENABLE_WEBSOCKET: False,
+        # Never set before, so every group stays selected
+        CONF_ENTITY_GROUPS: list(ENTITY_GROUPS),
     }
 
 
@@ -248,7 +261,11 @@ async def test_all_options_without_coordinator_data(
 ) -> None:
     """Without coordinator data every option is shown."""
     result = await _open(hass, loaded_entry, None)
-    assert _schema_keys(result) == [*ALL_BOOLEAN_KEYS, CONF_CPU_TEMPERATURE_SOURCE]
+    assert _schema_keys(result) == [
+        CONF_ENTITY_GROUPS,
+        *ALL_BOOLEAN_KEYS,
+        CONF_CPU_TEMPERATURE_SOURCE,
+    ]
     assert _cpu_choices(result) == [
         {"value": CPU_TEMPERATURE_SOURCE_AUTO, "label": "Automatic"}
     ]
@@ -260,7 +277,11 @@ async def test_all_options_when_entry_not_loaded(hass: HomeAssistant) -> None:
     entry.add_to_hass(hass)
     result = await hass.config_entries.options.async_init(entry.entry_id)
     assert result["type"] is FlowResultType.FORM
-    assert _schema_keys(result) == [*ALL_BOOLEAN_KEYS, CONF_CPU_TEMPERATURE_SOURCE]
+    assert _schema_keys(result) == [
+        CONF_ENTITY_GROUPS,
+        *ALL_BOOLEAN_KEYS,
+        CONF_CPU_TEMPERATURE_SOURCE,
+    ]
 
 
 async def test_missing_cpu_source_choice_is_kept(
@@ -437,6 +458,7 @@ async def test_all_options_without_runtime_data(
         result = await hass.config_entries.options.async_init(loaded_entry.entry_id)
         assert result["type"] is FlowResultType.FORM
         assert _schema_keys(result) == [
+            CONF_ENTITY_GROUPS,
             *ALL_BOOLEAN_KEYS,
             CONF_CPU_TEMPERATURE_SOURCE,
         ]

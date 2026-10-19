@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from homeassistant.components.button import ButtonEntity, ButtonEntityDescription
-from homeassistant.const import EntityCategory
+from homeassistant.const import EntityCategory, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
@@ -28,6 +28,7 @@ from .entity import (
     find_vm,
     vm_devices_enabled,
 )
+from .entity_selection import async_filter_add_entities
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -203,6 +204,9 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up Unraid button entities."""
+    async_add_entities = async_filter_add_entities(
+        entry, Platform.BUTTON, async_add_entities
+    )
     coordinator = entry.runtime_data.coordinator
 
     entities: list[ButtonEntity] = [

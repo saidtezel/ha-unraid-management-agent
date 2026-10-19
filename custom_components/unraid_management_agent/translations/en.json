@@ -14,6 +14,16 @@
           "api_token": "Required if an API token is set in the agent's settings (Settings > Unraid Management Agent > Authentication). Leave empty if authentication is disabled."
         }
       },
+      "entities": {
+        "title": "Choose entities",
+        "description": "Choose which entities Home Assistant creates for this server. You can change this later from the integration's Configure menu.",
+        "data": {
+          "entity_groups": "Entities to create"
+        },
+        "data_description": {
+          "entity_groups": "Pick the groups of entities to create. Server-wide sensors (CPU, memory, array, UPS, notifications, OS update) are always created. Entities of groups you untick are removed."
+        }
+      },
       "reconfigure": {
         "title": "Reconfigure Unraid Server",
         "description": "Update the connection details for your Unraid Management Agent",
@@ -58,6 +68,7 @@
         "title": "Unraid Management Agent Options",
         "description": "Configure integration features",
         "data": {
+          "entity_groups": "Entities to create",
           "enable_container_updates": "Enable container update checks",
           "enable_fan_control": "Enable fan control entities",
           "read_only": "Enable read-only mode (sensors only)",
@@ -71,6 +82,7 @@
           "cpu_temperature_source": "CPU temperature source"
         },
         "data_description": {
+          "entity_groups": "Pick the groups of entities to create. Server-wide sensors (CPU, memory, array, UPS, notifications, OS update) are always created. Entities of groups you untick are removed.",
           "enable_container_updates": "Periodically check Docker containers for available image updates. This may slow down polling and use additional network requests. Also creates an update entity for each container, from which its image update can be installed.",
           "enable_fan_control": "Create fan speed sensor and control entities. Disable if your system does not have controllable fans.",
           "read_only": "Only create sensors. Switches, buttons, and number controls are not created (existing ones are removed), and the integration's actions refuse to run, so Home Assistant cannot start, stop, or reboot anything on the server. Update entities still show available updates but do not offer to install them.",
@@ -87,6 +99,25 @@
     }
   },
   "selector": {
+    "entity_groups": {
+      "options": {
+        "container_controls": "Docker container controls (start/stop and autostart switches, restart buttons)",
+        "container_sensors": "Docker container sensors (CPU, memory, network, restarts)",
+        "vm_controls": "VM controls (power switches, stop/restart/pause/resume/reset buttons)",
+        "vm_sensors": "VM sensors (VM metrics and guest agent data)",
+        "array_controls": "Array and parity check controls (buttons)",
+        "power_controls": "Server shutdown and reboot buttons",
+        "disk_spin_controls": "Disk spin up/down switches",
+        "disk_sensors": "Per-disk sensors (usage, health, temperature, SMART, I/O)",
+        "share_sensors": "Per-share sensors",
+        "network_sensors": "Network interface sensors (link state, RX/TX)",
+        "services": "System and network service status sensors",
+        "user_scripts": "User Scripts buttons",
+        "remote_shares": "Remote share mount switches and sensors",
+        "unassigned_devices": "Unassigned device sensors",
+        "plugin_updates": "Plugin update entities"
+      }
+    },
     "cpu_temperature_source": {
       "options": {
         "auto": "Automatic (agent CPU temperature)"
