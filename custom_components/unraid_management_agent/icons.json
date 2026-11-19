@@ -67,10 +67,19 @@
       "docker_vdisk_usage": {
         "default": "mdi:docker"
       },
+      "docker_vdisk_usage_on_server": {
+        "default": "mdi:docker"
+      },
       "docker_cpu_usage": {
         "default": "mdi:docker"
       },
+      "docker_cpu_usage_on_server": {
+        "default": "mdi:docker"
+      },
       "docker_memory_usage": {
+        "default": "mdi:docker"
+      },
+      "docker_memory_usage_on_server": {
         "default": "mdi:docker"
       },
       "log_filesystem_usage": {

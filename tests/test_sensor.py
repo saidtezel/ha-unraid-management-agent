@@ -5737,3 +5737,77 @@ def test_parity_sensors_supported_without_array_data() -> None:
     data = UnraidData()
     parity = next(d for d in ARRAY_SENSOR_DESCRIPTIONS if d.key == "parity_progress")
     assert parity.supported_fn(data) is True
+
+
+# =============================================================================
+# Regression tests: agent payload quirks seen on Unraid 7.4 / agent 2026.11.06
+# =============================================================================
+
+
+def test_get_array_usage_falls_back_to_data_disks():
+    """Agent reports total_bytes=0, used_percent=0: sum the data disks instead."""
+    from custom_components.unraid_management_agent.api.models import (
+        ArrayStatus,
+        DiskInfo,
+    )
+    from custom_components.unraid_management_agent.sensor import _get_array_attrs
+
+    data = UnraidData()
+    data.array = ArrayStatus(
+        state="STARTED", total_bytes=0, used_bytes=None, free_bytes=0, used_percent=0
+    )
+    data.disks = [
+        DiskInfo(id="p", name="parity", role="parity", size_bytes=12_000, used_bytes=0),
+        DiskInfo(
+            id="d1", name="disk1", role="data", size_bytes=4_000, used_bytes=3_000
+        ),
+        DiskInfo(
+            id="d2", name="disk2", role="data", size_bytes=4_000, used_bytes=1_000
+        ),
+        DiskInfo(id="c", name="cache", role="cache", size_bytes=500, used_bytes=200),
+    ]
+
+    assert _get_array_usage(data) == 50.0
+    attrs = _get_array_attrs(data)
+    assert attrs["total_capacity"]
+    assert attrs["used_space"]
+    assert attrs["free_space"]
+
+
+def test_docker_running_count_reads_state_field():
+    """The agent puts 'running' in state and 'Up 11 hours' in status."""
+    from custom_components.unraid_management_agent.sensor import (
+        _get_docker_cpu_attrs,
+        _get_docker_memory_attrs,
+    )
+
+    running = MagicMock(state="running", status="Up 11 hours (healthy)")
+    running.cpu_percent = 1.0
+    running.memory_usage_bytes = 1024
+    stopped = MagicMock(state="exited", status="Exited (0) 2 days ago")
+    stopped.cpu_percent = 0.0
+    stopped.memory_usage_bytes = 0
+    data = MagicMock(spec=UnraidData)
+    data.containers = [running, stopped]
+    data.system = None
+
+    assert _get_docker_cpu_attrs(data)["running_containers"] == 1
+    assert _get_docker_memory_attrs(data)["running_containers"] == 1
+
+
+def test_disk_health_ignores_unknown_smart_status():
+    """smart_status 'UNKNOWN' carries no data: fall back to the disk status."""
+    from custom_components.unraid_management_agent.sensor import _disk_health_value
+
+    assert (
+        _disk_health_value(MagicMock(smart_status="UNKNOWN", status="DISK_OK"))
+        == "DISK_OK"
+    )
+    assert (
+        _disk_health_value(MagicMock(smart_status="PASSED", status="DISK_OK"))
+        == "PASSED"
+    )
+    assert (
+        _disk_health_value(MagicMock(smart_status="UNKNOWN", status=None)) == "UNKNOWN"
+    )
+    assert _disk_health_value(MagicMock(smart_status=None, status=None)) is None

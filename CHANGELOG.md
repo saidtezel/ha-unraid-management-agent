@@ -15,6 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Repository metadata (manifest, `pyproject.toml`, README, CODEOWNERS, dashboard card documentation link) now points to the `saidtezel/ha-unraid-management-agent` fork and `saidtezel/unraid-management-agent`. The original copyright notice is kept in `NOTICE`.
 
+### Fixed
+
+- **Array Usage** no longer reads 0% when the agent reports the array's `total_bytes` as 0. It falls back to the sum of the data disks, and the capacity attributes follow.
+- **Docker running containers**: the `running_containers` attribute on the Docker CPU and memory sensors counted 0. It read the human status ("Up 11 hours") instead of the container `state`.
+- **Disk Health** showed `UNKNOWN` for every disk when the agent could not read SMART. An `UNKNOWN` SMART status now falls back to the disk status (`DISK_OK`, ...).
+- **Docker CPU / Memory / vDisk Usage** on the server device (container devices off) were named just "CPU Usage" / "Memory Usage", which read like the server's own sensors and gave new installs entity IDs like `sensor.<server>_cpu_usage_2`. They are now named "Docker CPU Usage" and so on. Existing entity IDs are kept.
+
 ## [2026.10.0] — 2026-10-19
 
 ### Added
