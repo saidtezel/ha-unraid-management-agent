@@ -179,8 +179,14 @@
       "docker_cpu_usage": {
         "name": "CPU Usage"
       },
+      "docker_cpu_usage_on_server": {
+        "name": "Docker CPU Usage"
+      },
       "docker_memory_usage": {
         "name": "Memory Usage"
+      },
+      "docker_memory_usage_on_server": {
+        "name": "Docker Memory Usage"
       },
       "system_status": {
         "name": "System Status"
@@ -289,6 +295,9 @@
       },
       "docker_vdisk_usage": {
         "name": "vDisk Usage"
+      },
+      "docker_vdisk_usage_on_server": {
+        "name": "Docker vDisk Usage"
       },
       "log_filesystem_usage": {
         "name": "Log Filesystem Usage"

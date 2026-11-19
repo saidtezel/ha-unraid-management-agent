@@ -438,9 +438,17 @@ async def test_default_options_only_server_device(hass: HomeAssistant) -> None:
     switch = entities.async_get("switch.unraid_test_container_plex")
     assert switch is not None
     assert switch.device_id == server.id
-    docker_cpu = entities.async_get("sensor.unraid_test_cpu_usage_2")
+    # On the server device the Docker sensors say "Docker" in their name, so
+    # they no longer read as (and collide with) the server's own CPU Usage
+    docker_cpu = entities.async_get("sensor.unraid_test_docker_cpu_usage")
     assert docker_cpu is not None
     assert docker_cpu.device_id == server.id
+    assert (
+        hass.states.get("sensor.unraid_test_docker_cpu_usage").attributes[
+            "friendly_name"
+        ]
+        == "unraid-test Docker CPU Usage"
+    )
     assert not await async_remove_config_entry_device(hass, entry, server)
 
 

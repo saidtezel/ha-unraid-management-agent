@@ -95,6 +95,7 @@ from .entity import (
     gpu_device_keys,
     gpu_devices_enabled,
     hwmon_devices_enabled,
+    is_group_device_enabled,
     vm_devices_enabled,
     zfs_pool_devices_enabled,
 )
@@ -573,6 +574,21 @@ def _get_swappiness(data: UnraidData) -> int | None:
 # =============================================================================
 
 
+def _count_running_containers(containers: list[Any]) -> int:
+    """
+    Count running containers.
+
+    The agent reports the lifecycle in ``state`` ("running", "exited") and a
+    human string in ``status`` ("Up 11 hours (healthy)"), so read ``state``.
+    """
+    return sum(
+        1
+        for c in containers
+        if (getattr(c, "state", None) or getattr(c, "status", "") or "").lower()
+        == "running"
+    )
+
+
 def _get_docker_cpu_usage(data: UnraidData) -> float | None:
     """Get total Docker CPU usage from coordinator data."""
     if not data or not data.containers:
@@ -589,7 +605,7 @@ def _get_docker_cpu_attrs(data: UnraidData) -> dict[str, Any]:
     """Get Docker CPU extra state attributes."""
     if not data or not data.containers:
         return {}
-    running = sum(1 for c in data.containers if getattr(c, "status", "") == "running")
+    running = _count_running_containers(data.containers)
     return {
         "total_containers": len(data.containers),
         "running_containers": running,
@@ -615,7 +631,7 @@ def _get_docker_memory_attrs(data: UnraidData) -> dict[str, Any]:
     if not data or not data.containers:
         return {}
 
-    running = sum(1 for c in data.containers if getattr(c, "status", "") == "running")
+    running = _count_running_containers(data.containers)
     attrs: dict[str, Any] = {
         "total_containers": len(data.containers),
         "running_containers": running,
@@ -640,13 +656,53 @@ def _get_docker_memory_attrs(data: UnraidData) -> dict[str, Any]:
 # =============================================================================
 
 
+def _array_data_disk_totals(data: UnraidData) -> tuple[int, int] | None:
+    """Sum size and used bytes over the array's data disks."""
+    disks = [
+        d
+        for d in (data.disks or [])
+        if getattr(d, "role", None) == "data" and getattr(d, "size_bytes", None)
+    ]
+    if not disks:
+        return None
+    total = sum(int(d.size_bytes) for d in disks)
+    used = sum(int(d.used_bytes or 0) for d in disks)
+    return (total, used) if total > 0 else None
+
+
+def _array_capacity(data: UnraidData) -> tuple[int, int, int] | None:
+    """
+    Return (total, used, free) bytes for the array.
+
+    Uses the array's own totals when the agent reports them, otherwise the sum
+    of the data disks (some agent versions report total_bytes=0).
+    """
+    array = data.array
+    if array and array.total_bytes:
+        total = int(array.total_bytes)
+        used = int(array.used_bytes or 0)
+        free = int(array.free_bytes or max(total - used, 0))
+        return total, used, free
+    sums = _array_data_disk_totals(data)
+    if sums is None:
+        return None
+    total, used = sums
+    return total, used, max(total - used, 0)
+
+
 def _get_array_usage(data: UnraidData) -> float | None:
     """Get array usage from coordinator data."""
-    if data and data.array:
+    if not data or not data.array:
+        return None
+    if data.array.total_bytes:
         computed = data.array.computed_used_percent
         if computed is not None:
             return round(float(computed), 1)
-    return None
+    capacity = _array_capacity(data)
+    if capacity is None:
+        return None
+    total, used, _free = capacity
+    return round(used / total * 100, 1)
 
 
 def _get_array_attrs(data: UnraidData) -> dict[str, Any]:
@@ -655,9 +711,7 @@ def _get_array_attrs(data: UnraidData) -> dict[str, Any]:
         return {}
 
     array = data.array
-    total = array.total_bytes or 0
-    used = array.used_bytes or 0
-    free = array.free_bytes or 0
+    total, used, free = _array_capacity(data) or (0, 0, 0)
 
     attrs = {
         ATTR_ARRAY_STATE: array.state,
@@ -1813,6 +1867,10 @@ class UnraidSensorEntity(UnraidBaseEntity, SensorEntity):
             self._attr_device_info = build_group_device_info(
                 coordinator, description.device_group
             )
+            if not is_group_device_enabled(coordinator, description.device_group):
+                # On the server device the name must say what it measures:
+                # "Tower CPU Usage" would read like the server's own CPU.
+                self._attr_translation_key = f"{description.translation_key}_on_server"
 
     @property
     def native_value(self) -> Any:
@@ -2579,7 +2637,7 @@ class UnraidDiskHealthSensor(UnraidDiskSensorBase, RestoreEntity):
         if not disk:
             return self._last_known_health
 
-        health: str | None = disk.smart_status or disk.status
+        health = _disk_health_value(disk)
 
         if health is not None:
             # Update cached value when we have fresh data
@@ -2610,7 +2668,7 @@ class UnraidDiskHealthSensor(UnraidDiskSensorBase, RestoreEntity):
         if spin_state is not None:
             attrs["spin_state"] = spin_state
 
-        health = disk.smart_status or disk.status
+        health = _disk_health_value(disk)
         if health is None and self._is_standby(disk) and self._last_known_health:
             attrs["cached_value"] = True
 
@@ -2619,6 +2677,20 @@ class UnraidDiskHealthSensor(UnraidDiskSensorBase, RestoreEntity):
             attrs["temperature"] = f"{temp} °C"
 
         return attrs
+
+
+def _disk_health_value(disk: Any) -> str | None:
+    """
+    Return a disk's health: its SMART status, else its array status.
+
+    The agent reports smart_status "UNKNOWN" when it could not read SMART;
+    that carries no information, so the disk status (DISK_OK, ...) is used.
+    """
+    smart = disk.smart_status
+    if smart and smart.upper() != "UNKNOWN":
+        return str(smart)
+    result: str | None = disk.status or smart
+    return result
 
 
 class UnraidDiskTemperatureSensor(UnraidDiskSensorBase):
